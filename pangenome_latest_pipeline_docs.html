@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pangenome Assembly Pipeline — Documentation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#ffffff; --bg2:#f7f6f3; --bg3:#f0efe9;
+    --text:#1a1a1a; --text2:#555550; --text3:#888880;
+    --border:rgba(0,0,0,0.10); --border2:rgba(0,0,0,0.17);
+    --radius:8px; --radius-lg:12px;
+    --mono:'Courier New',monospace; --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  body { font-family:var(--sans); color:var(--text); background:var(--bg); line-height:1.6; font-size:15px; }
+
+  /* NAV */
+  .topnav { position:sticky; top:0; z-index:200; background:var(--bg); border-bottom:0.5px solid var(--border2);
+    display:flex; align-items:center; padding:0 1.5rem; overflow-x:auto; white-space:nowrap; gap:0; }
+  .topnav-brand { font-size:12.5px; font-weight:600; color:var(--text); padding:11px 1rem 11px 0;
+    border-right:0.5px solid var(--border2); margin-right:4px; flex-shrink:0; letter-spacing:-0.2px; }
+  .topnav a { font-size:12px; color:var(--text2); text-decoration:none; padding:11px 9px; display:inline-block;
+    border-bottom:2px solid transparent; transition:color .12s; }
+  .topnav a:hover { color:var(--text); }
+  .topnav a.active { color:var(--text); border-bottom:2px solid var(--text); }
+
+  /* HERO */
+  .hero { padding:2.5rem 2.5rem 1.8rem; border-bottom:0.5px solid var(--border); max-width:960px; }
+  .badge-row { display:flex; gap:5px; margin-bottom:1rem; flex-wrap:wrap; }
+  .badge { font-size:11px; padding:3px 9px; border-radius:4px; font-weight:500; letter-spacing:.01em; }
+  .b-green  { background:#EAF3DE; color:#3B6D11; }
+  .b-blue   { background:#E6F1FB; color:#185FA5; }
+  .b-amber  { background:#FAEEDA; color:#854F0B; }
+  .b-gray   { background:#F1EFE8; color:#5F5E5A; }
+  .b-purple { background:#EEEDFE; color:#534AB7; }
+  .b-coral  { background:#FAECE7; color:#993C1D; }
+  .b-teal   { background:#E0F5F1; color:#1A6B5C; }
+  .hero h1 { font-size:25px; font-weight:600; letter-spacing:-.5px; margin-bottom:.65rem; }
+  .hero p { font-size:14px; color:var(--text2); max-width:700px; line-height:1.78; }
+
+  /* LAYOUT */
+  .layout { display:flex; }
+  .sidebar { width:200px; flex-shrink:0; position:sticky; top:41px; height:calc(100vh - 41px);
+    overflow-y:auto; border-right:0.5px solid var(--border); padding:1.3rem 0; }
+  .sb-group { margin-bottom:1.4rem; }
+  .sb-label { font-size:9.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--text3); padding:0 1rem; margin-bottom:3px; }
+  .sidebar a { display:block; font-size:12.5px; color:var(--text2); text-decoration:none;
+    padding:4.5px 1rem; border-left:2px solid transparent; transition:all .1s; }
+  .sidebar a:hover { color:var(--text); background:var(--bg2); }
+  .sidebar a.active { color:var(--text); font-weight:500; border-left:2px solid var(--text); background:var(--bg2); }
+
+  /* CONTENT */
+  .content { flex:1; padding:2rem 2.5rem; max-width:840px; overflow-x:hidden; }
+  .section { margin-bottom:3rem; }
+  .section > h2 { font-size:18px; font-weight:600; margin-bottom:.9rem; padding-bottom:.5rem;
+    border-bottom:.5px solid var(--border2); letter-spacing:-.3px; }
+  h3 { font-size:14px; font-weight:600; margin:1.4rem 0 .55rem; }
+  h4 { font-size:11px; font-weight:600; margin:.9rem 0 .35rem; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; }
+  p { font-size:13.5px; line-height:1.76; color:var(--text2); margin-bottom:.65rem; }
+  p strong { color:var(--text); font-weight:600; }
+
+  code { font-family:var(--mono); font-size:12px; background:var(--bg2); border:.5px solid var(--border2);
+    padding:1px 5px; border-radius:4px; color:var(--text); }
+  pre { background:var(--bg2); border:.5px solid var(--border2); border-radius:var(--radius);
+    padding:.9rem 1.2rem; overflow-x:auto; margin:.65rem 0 1rem; }
+  pre code { background:none; border:none; padding:0; font-size:12px; line-height:1.65; display:block; }
+
+  .note { border-radius:var(--radius); padding:.8rem 1rem; font-size:13px; line-height:1.65;
+    margin:.85rem 0; border-left:3px solid; }
+  .note-blue   { background:#E6F1FB; color:#185FA5; border-color:#378ADD; }
+  .note-amber  { background:#FAEEDA; color:#854F0B; border-color:#EF9F27; }
+  .note-green  { background:#EAF3DE; color:#3B6D11; border-color:#639922; }
+  .note-red    { background:#FCEBEB; color:#A32D2D; border-color:#E24B4A; }
+
+  /* FLOW */
+  .flow { display:flex; align-items:center; flex-wrap:wrap; gap:4px; padding:.9rem 1rem;
+    background:var(--bg2); border-radius:var(--radius); border:.5px solid var(--border); margin:.9rem 0; }
+  .flow-step { font-size:11px; font-weight:500; padding:4px 9px; border-radius:5px; white-space:nowrap; }
+  .flow-arrow { color:var(--text3); font-size:12px; }
+  .fs-qc  { background:#E6F1FB; color:#185FA5; }
+  .fs-idx { background:#EEEDFE; color:#534AB7; }
+  .fs-aln { background:#EAF3DE; color:#3B6D11; }
+  .fs-stat{ background:#FAEEDA; color:#854F0B; }
+  .fs-ext { background:#FAECE7; color:#993C1D; }
+  .fs-asm { background:#F1EFE8; color:#444441; }
+  .fs-con { background:#FAECE7; color:#993C1D; }
+  .fs-rep { background:#E0F5F1; color:#1A6B5C; }
+  .fs-gen { background:#EAF3DE; color:#3B6D11; }
+  .fs-fil { background:#FAEEDA; color:#854F0B; }
+  .fs-pav { background:#EEEDFE; color:#534AB7; }
+
+  /* TABLES */
+  table { width:100%; border-collapse:collapse; font-size:13px; margin:.7rem 0 1.1rem; }
+  th { text-align:left; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text3); padding:6px 10px; border-bottom:.5px solid var(--border2); }
+  td { padding:7px 10px; border-bottom:.5px solid var(--border); vertical-align:top; line-height:1.55; color:var(--text2); }
+  tr:last-child td { border-bottom:none; }
+  td:first-child code { font-size:11.5px; }
+  td.mono { font-family:var(--mono); font-size:11.5px; color:#3B6D11; }
+
+  /* MODULE CARDS */
+  .mod { border:.5px solid var(--border2); border-radius:var(--radius-lg); margin-bottom:1.1rem; overflow:hidden; }
+  .mod-hd { padding:.75rem 1.05rem; background:var(--bg2); display:flex; align-items:center; gap:8px;
+    border-bottom:.5px solid var(--border2); }
+  .mod-name { font-size:12.5px; font-weight:600; font-family:var(--mono); }
+  .mod-file { font-size:10.5px; color:var(--text3); margin-left:auto; font-family:var(--mono); }
+  .mod-body { padding:.9rem 1.05rem; }
+  .mod-desc { font-size:13px; color:var(--text2); line-height:1.72; margin-bottom:.7rem; }
+  .io { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; margin-top:.65rem; }
+  .io-box h4 { margin-bottom:4px; }
+  .io-box ul { list-style:none; }
+  .io-box li { font-size:11.5px; color:var(--text2); padding:2px 0; font-family:var(--mono); }
+  .io-box li::before { content:"-> "; color:var(--text3); }
+
+  .phase-label { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text3); margin:1.8rem 0 .7rem; padding:.3rem .6rem; background:var(--bg2);
+    border-radius:4px; display:inline-block; }
+
+  .tree { background:var(--bg2); border:.5px solid var(--border2); border-radius:var(--radius);
+    padding:.95rem 1.2rem; font-family:var(--mono); font-size:12px; line-height:1.9; color:var(--text2); }
+  .tree .dir { color:var(--text); font-weight:600; }
+  .tree .hi  { color:#185FA5; }
+
+  @media print { .topnav,.sidebar { display:none; } .content { padding:0; max-width:100%; } }
+  @media (max-width:680px) { .sidebar { display:none; } .content { padding:1.2rem; } .io { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-brand">Pangenome Assembly Pipeline</div>
+  <a href="#overview" class="active">Overview</a>
+  <a href="#quickstart">Quick start</a>
+  <a href="#structure">File structure</a>
+  <a href="#steps">Steps</a>
+  <a href="#modules">Modules</a>
+  <a href="#config">Configuration</a>
+  <a href="#outputs">Outputs</a>
+  <a href="#troubleshooting">Troubleshooting</a>
+</nav>
+
+<div class="hero">
+  <div class="badge-row">
+    <span class="badge b-green">Nextflow DSL2</span>
+    <span class="badge b-blue">BWA-MEM2</span>
+    <span class="badge b-amber">MaSuRCA</span>
+    <span class="badge b-coral">BLAST / FCS-GX</span>
+    <span class="badge b-teal">EDTA / RepeatMasker</span>
+    <span class="badge b-green">BRAKER3</span>
+    <span class="badge b-purple">PAV Analysis</span>
+    <span class="badge b-gray">Conda</span>
+  </div>
+  <h1>Pangenome Assembly Pipeline</h1>
+  <p>A full end-to-end Nextflow DSL2 pipeline for short-read pangenome discovery. Covers read QC, reference alignment, unmapped read extraction, <em>de novo</em> assembly, contamination screening, repeat annotation, gene prediction, gene filtering, pangenome construction, and presence/absence variation (PAV) analysis across a multi-sample cohort.</p>
+</div>
+
+<div class="layout">
+
+<nav class="sidebar">
+  <div class="sb-group">
+    <div class="sb-label">Getting started</div>
+    <a href="#overview">Overview</a>
+    <a href="#quickstart">Quick start</a>
+    <a href="#structure">File structure</a>
+  </div>
+  <div class="sb-group">
+    <div class="sb-label">Running</div>
+    <a href="#steps">All steps</a>
+    <a href="#config">Configuration</a>
+    <a href="#outputs">Outputs</a>
+  </div>
+  <div class="sb-group">
+    <div class="sb-label">Reference</div>
+    <a href="#modules">All modules</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+  </div>
+</nav>
+
+<main class="content">
+
+<!-- OVERVIEW -->
+<section class="section" id="overview">
+  <h2>Overview</h2>
+  <p>This pipeline takes paired-end Illumina reads from multiple accessions, aligns them to a reference genome, and extracts everything that did not align. Those unmapped reads are assembled <em>de novo</em>, cleaned of contamination, repeat-annotated, and fed into gene prediction. The resulting gene models are filtered for quality and novelty, then combined with reference genes to build a pan-gene catalogue. Finally, raw reads from every sample are aligned back to the pan-gene set to produce a presence/absence variation (PAV) matrix characterising the accessory genome.</p>
+
+  <h3>Pipeline phases</h3>
+
+  <p style="margin-bottom:4px;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Phase 1 — QC and alignment</p>
+  <div class="flow">
+    <span class="flow-step fs-qc">FastQC</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-qc">MultiQC</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-idx">BWA index</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-aln">BWA align + sort</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-stat">Align stats</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-stat">Qualimap</span>
+  </div>
+
+  <p style="margin-bottom:4px;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Phase 2 — Assembly</p>
+  <div class="flow">
+    <span class="flow-step fs-ext">Extract unmapped</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-ext">Convert to FASTQ</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-asm">Pool reads</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-asm">MaSuRCA assembly</span>
+  </div>
+
+  <p style="margin-bottom:4px;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Phase 3 — Contamination removal (BLAST path or FCS-GX path)</p>
+  <div class="flow">
+    <span class="flow-step fs-con">BLAST NT</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-con">Filter BLAST</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-con">Remove contaminants</span>
+    <span class="flow-arrow" style="margin:0 8px;font-size:11px;color:var(--text3);">OR</span>
+    <span class="flow-step fs-con">FCS-GX screen</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-con">FCS-GX clean</span>
+  </div>
+
+  <p style="margin-bottom:4px;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Phase 4 — Repeat annotation</p>
+  <div class="flow">
+    <span class="flow-step fs-rep">EDTA annotate</span>
+    <span class="flow-arrow" style="margin:0 8px;font-size:11px;color:var(--text3);">and/or</span>
+    <span class="flow-step fs-rep">RepeatMasker</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-asm">Pangenome merge</span>
+  </div>
+
+  <p style="margin-bottom:4px;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Phase 5 — Gene prediction and filtering</p>
+  <div class="flow">
+    <span class="flow-step fs-gen">BRAKER3</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-fil">CD-HIT filter</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-fil">Repeat-gene filter</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-fil">Extract filtered genes</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-fil">Ref similarity filter</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-asm">Build pan-gene set</span>
+  </div>
+
+  <p style="margin-bottom:4px;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Phase 6 — PAV analysis</p>
+  <div class="flow">
+    <span class="flow-step fs-pav">PAV align</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-pav">PAV call</span><span class="flow-arrow">-></span>
+    <span class="flow-step fs-pav">PAV classify</span>
+  </div>
+
+  <h3>Supported execution</h3>
+  <table>
+    <thead><tr><th>Profile</th><th>Use case</th><th>Container</th></tr></thead>
+    <tbody>
+      <tr><td><code>local</code></td><td>Desktop or laptop with a single conda environment</td><td>Conda</td></tr>
+    </tbody>
+  </table>
+  <div class="note note-blue">Additional profiles (Singularity, HPC/SLURM) can be added to <code>nextflow.config</code> under the <code>profiles</code> block following standard Nextflow syntax.</div>
+</section>
+
+<!-- QUICK START -->
+<section class="section" id="quickstart">
+  <h2>Quick start</h2>
+
+  <h3>1. Prerequisites</h3>
+  <p>All tools must be installed in your conda environment or on your system PATH:</p>
+  <table>
+    <thead><tr><th>Tool</th><th>Purpose</th><th>Min. version</th></tr></thead>
+    <tbody>
+      <tr><td><code>nextflow</code></td><td>Workflow engine</td><td>22.10</td></tr>
+      <tr><td><code>bwa-mem2</code></td><td>Reference alignment</td><td>2.2</td></tr>
+      <tr><td><code>bowtie2</code></td><td>PAV alignment (also optional reference aligner)</td><td>2.5</td></tr>
+      <tr><td><code>samtools</code></td><td>BAM handling throughout all phases</td><td>1.16</td></tr>
+      <tr><td><code>fastqc</code></td><td>Per-sample read QC</td><td>0.11</td></tr>
+      <tr><td><code>multiqc</code></td><td>Aggregated QC report</td><td>1.14</td></tr>
+      <tr><td><code>qualimap</code></td><td>Alignment quality metrics</td><td>2.3</td></tr>
+      <tr><td><code>masurca</code></td><td>De novo assembly</td><td>4.1</td></tr>
+      <tr><td><code>blast+</code></td><td>Contamination screening and reference similarity filtering</td><td>2.12</td></tr>
+      <tr><td><code>taxonkit</code></td><td>Taxonomic lineage annotation for BLAST hits</td><td>0.15</td></tr>
+      <tr><td><code>fcs.py</code> (NCBI FCS-GX)</td><td>Eukaryotic contamination detection</td><td>Current</td></tr>
+      <tr><td><code>EDTA.pl</code></td><td>Transposable element annotation (optional)</td><td>2.1</td></tr>
+      <tr><td><code>RepeatMasker</code></td><td>Repeat masking for gene prediction</td><td>4.1</td></tr>
+      <tr><td><code>braker.pl</code></td><td>Ab initio gene prediction (BRAKER3)</td><td>3.0</td></tr>
+      <tr><td><code>cd-hit</code></td><td>Protein redundancy clustering</td><td>4.8</td></tr>
+      <tr><td><code>bedtools</code></td><td>Repeat-gene overlap calculation</td><td>2.30</td></tr>
+      <tr><td><code>gffread</code></td><td>Extract gene sequences from GTF</td><td>0.12</td></tr>
+      <tr><td><code>seqkit</code></td><td>FASTA filtering by ID list</td><td>2.4</td></tr>
+      <tr><td><code>python3</code> + <code>pandas</code></td><td>PAV matrix merging and classification</td><td>Python 3.9</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2. Prepare the reference folder</h3>
+  <p>Create <code>reference/</code> at the pipeline root. Place exactly <strong>one</strong> genome FASTA (<code>.fasta</code> or <code>.fa</code>) and the reference coding sequence file — which must be named exactly <code>cds_from_genomic.fna</code> — inside it:</p>
+  <pre><code>reference/
+├── genome.fasta              &lt;-- any name; .fasta or .fa only
+└── cds_from_genomic.fna      &lt;-- required; exact filename</code></pre>
+  <div class="note note-amber">Both files are mandatory. The pipeline exits at startup if either is missing or if more than one <code>.fasta/.fa</code> file is present.</div>
+
+  <h3>3. Prepare protein hints for BRAKER</h3>
+  <p>Create <code>protein_hints/</code> at the pipeline root with exactly one protein FASTA file (accepted extensions: <code>.fa</code>, <code>.fasta</code>, <code>.faa</code>, <code>.pep</code>):</p>
+  <pre><code>protein_hints/
+└── proteins.fa</code></pre>
+
+  <h3>4. Configure FCS-GX (if using the FCS contamination path)</h3>
+  <p>FCS-GX requires a local copy of the NCBI GX database. Once downloaded, open <code>modules/fcs_screen.nf</code> and update the two inline variables near the top of the script block:</p>
+  <pre><code>GXDB_DIR="/path/to/gxdb"   # directory containing all.gxi, all.gxs etc.
+TAXID=3827                 # NCBI taxid of your target organism</code></pre>
+
+  <h3>5. Organise samples</h3>
+  <p>Create <code>samples/</code> with one subdirectory per accession containing paired gzipped FASTQ files. Both naming conventions are accepted:</p>
+  <pre><code>samples/
+├── accession_A/
+│   ├── accession_A_R1.fastq.gz   &lt;-- R1/R2 style
+│   └── accession_A_R2.fastq.gz
+└── accession_B/
+    ├── accession_B_1.fastq.gz    &lt;-- 1/2 style
+    └── accession_B_2.fastq.gz</code></pre>
+  <div class="note note-amber">Files must end in <code>.fastq.gz</code>. Any other suffix (e.g. <code>_R1_001.fastq.gz</code>, <code>.fq.gz</code>) will be silently ignored.</div>
+
+  <h3>6. Run the pipeline</h3>
+  <pre><code># Full pipeline end-to-end
+nextflow run main.nf -profile local --step complete
+
+# Single step
+nextflow run main.nf -profile local --step qc
+
+# Resume an interrupted run
+nextflow run main.nf -profile local --step complete -resume</code></pre>
+</section>
+
+<!-- FILE STRUCTURE -->
+<section class="section" id="structure">
+  <h2>File structure</h2>
+  <div class="tree">
+    <span class="dir">pipeline/</span><br>
+    ├── <span class="hi">main.nf</span>                  &lt;-- entry point; all workflow logic<br>
+    ├── <span class="hi">nextflow.config</span>           &lt;-- params, profiles, trace/timeline/report<br>
+    ├── <span class="dir">conf/</span><br>
+    │   ├── <span class="hi">base.config</span>           &lt;-- CPUs, memory, parallelism per process<br>
+    │   └── <span class="hi">local.config</span>          &lt;-- total machine resource limits<br>
+    ├── <span class="dir">modules/</span>                 &lt;-- one .nf file per process (30 modules)<br>
+    │   ├── alignment_stats.nf<br>
+    │   ├── blast_filter.nf<br>
+    │   ├── blast_nt.nf<br>
+    │   ├── blast_remove.nf<br>
+    │   ├── bowtie2_align.nf<br>
+    │   ├── bowtie2_index.nf<br>
+    │   ├── braker.nf<br>
+    │   ├── build_pan_gene_set.nf<br>
+    │   ├── bwa_align.nf<br>
+    │   ├── bwa_index.nf<br>
+    │   ├── cdhit_filter.nf<br>
+    │   ├── combine_contigs.nf<br>
+    │   ├── convert_fastq.nf<br>
+    │   ├── edta_annotate.nf<br>
+    │   ├── extract_filtered_genes.nf<br>
+    │   ├── extract_unmapped.nf<br>
+    │   ├── fastqc.nf<br>
+    │   ├── fcs_clean.nf<br>
+    │   ├── fcs_screen.nf<br>
+    │   ├── masurca_assembly.nf<br>
+    │   ├── merge_fastq.nf<br>
+    │   ├── multiqc.nf<br>
+    │   ├── pangenome_merge.nf<br>
+    │   ├── pav_align.nf<br>
+    │   ├── pav_call.nf<br>
+    │   ├── pav_classify.nf<br>
+    │   ├── qualimap.nf<br>
+    │   ├── ref_sim_filter.nf<br>
+    │   ├── repeat_gene_filter.nf<br>
+    │   └── repeatmasker.nf<br>
+    ├── <span class="dir">reference/</span>               &lt;-- genome FASTA + cds_from_genomic.fna<br>
+    │   ├── genome.fasta<br>
+    │   └── cds_from_genomic.fna<br>
+    ├── <span class="dir">protein_hints/</span>           &lt;-- one protein FASTA for BRAKER3<br>
+    │   └── proteins.fa<br>
+    └── <span class="dir">samples/</span>                 &lt;-- one subdir per accession<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;├── accession_A/<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;│   ├── accession_A_R1.fastq.gz<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;│   └── accession_A_R2.fastq.gz<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;└── accession_B/<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── accession_B_R1.fastq.gz<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── accession_B_R2.fastq.gz
+  </div>
+  <div class="note note-blue" style="margin-top:.9rem;">BWA and Bowtie2 indexes are written permanently to <code>reference/bwa_index/</code> and <code>reference/bowtie2_index/</code> on first run and reused automatically on all subsequent runs — indexing only ever runs once.</div>
+</section>
+
+<!-- STEPS -->
+<section class="section" id="steps">
+  <h2>Pipeline steps</h2>
+  <p>Pass any value below as <code>--step &lt;value&gt;</code>. Use <code>complete</code> to chain every phase end-to-end in a single run.</p>
+
+  <div class="phase-label">Phase 1 — QC and alignment</div>
+  <table>
+    <thead><tr><th>Step</th><th>What it runs</th><th>Prerequisites on disk</th></tr></thead>
+    <tbody>
+      <tr><td><code>fastqc</code></td><td>FastQC on all samples</td><td>—</td></tr>
+      <tr><td><code>multiqc</code></td><td>MultiQC aggregation only</td><td>FastQC output must exist</td></tr>
+      <tr><td><code>qc</code></td><td>FastQC then MultiQC in sequence</td><td>—</td></tr>
+      <tr><td><code>index_bwa</code></td><td>Build BWA-MEM2 index</td><td>—</td></tr>
+      <tr><td><code>index_bowtie</code></td><td>Build Bowtie2 index</td><td>—</td></tr>
+      <tr><td><code>index</code></td><td>Alias for <code>index_bwa</code></td><td>—</td></tr>
+      <tr><td><code>align_bwa</code></td><td>Align all samples with BWA-MEM2, sort and index BAMs</td><td>BWA index in <code>reference/bwa_index/</code></td></tr>
+      <tr><td><code>align_bowtie</code></td><td>Align all samples with Bowtie2</td><td>Bowtie2 index in <code>reference/bowtie2_index/</code></td></tr>
+      <tr><td><code>align</code></td><td>Alias for <code>align_bwa</code></td><td>BWA index</td></tr>
+      <tr><td><code>alignstats</code></td><td>samtools flagstat / stats / coverage / idxstats per sample</td><td>Sorted BAMs in <code>results/aligned/</code></td></tr>
+      <tr><td><code>qualimap</code></td><td>Qualimap BAM QC per sample</td><td>Sorted BAMs in <code>results/aligned/</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="phase-label">Phase 2 — Assembly</div>
+  <table>
+    <thead><tr><th>Step</th><th>What it runs</th><th>Prerequisites on disk</th></tr></thead>
+    <tbody>
+      <tr><td><code>extract</code></td><td>Extract all categories of unmapped reads from sorted BAMs</td><td>Sorted BAMs</td></tr>
+      <tr><td><code>convert</code></td><td>Convert unmapped name-sorted BAMs to paired FASTQ</td><td><code>extract</code> output</td></tr>
+      <tr><td><code>pool</code></td><td>Merge all per-sample unmapped FASTQs into one R1/R2 pair</td><td><code>convert</code> output</td></tr>
+      <tr><td><code>assemble</code></td><td>MaSuRCA de novo assembly (pooled or per-sample mode)</td><td>Pooled or per-sample FASTQs</td></tr>
+    </tbody>
+  </table>
+
+  <div class="phase-label">Phase 3 — Contamination removal</div>
+  <table>
+    <thead><tr><th>Step</th><th>What it runs</th><th>Prerequisites on disk</th></tr></thead>
+    <tbody>
+      <tr><td><code>blast_nt</code></td><td>BLASTn contigs against NCBI nt (remote)</td><td>Assembly FASTA</td></tr>
+      <tr><td><code>blast_filter</code></td><td>Filter BLAST hits; split into plant vs non-plant by taxid</td><td><code>blast_nt</code> TSV output</td></tr>
+      <tr><td><code>blast_remove</code></td><td>Remove non-plant contigs; output clean assembly</td><td><code>blast_filter</code> + assembly</td></tr>
+      <tr><td><code>fcs_screen</code></td><td>FCS-GX eukaryotic contamination screen</td><td>Assembly + local GX database</td></tr>
+      <tr><td><code>fcs_clean</code></td><td>Apply FCS-GX action report to produce cleaned assembly</td><td><code>fcs_screen</code> report + assembly</td></tr>
+    </tbody>
+  </table>
+  <div class="note note-blue">The BLAST and FCS-GX paths are independent. Downstream steps auto-detect whichever cleaned assembly is present; FCS-cleaned assembly is preferred if both exist.</div>
+
+  <div class="phase-label">Phase 4 — Repeat annotation</div>
+  <table>
+    <thead><tr><th>Step</th><th>What it runs</th><th>Prerequisites on disk</th></tr></thead>
+    <tbody>
+      <tr><td><code>edta</code></td><td>Full EDTA TE annotation pipeline (optional)</td><td>Cleaned assembly</td></tr>
+      <tr><td><code>repeatmasker</code></td><td>RepeatMasker soft-masking with chickpea library</td><td>Cleaned assembly (FCS or BLAST)</td></tr>
+      <tr><td><code>pangenome_merge</code></td><td>Concatenate masked novel contigs with reference genome</td><td>RepeatMasker masked assembly</td></tr>
+    </tbody>
+  </table>
+
+  <div class="phase-label">Phase 5 — Gene prediction and filtering</div>
+  <table>
+    <thead><tr><th>Step</th><th>What it runs</th><th>Prerequisites on disk</th></tr></thead>
+    <tbody>
+      <tr><td><code>braker</code></td><td>BRAKER3 gene prediction with protein hints</td><td>RepeatMasker masked assembly + <code>protein_hints/</code></td></tr>
+      <tr><td><code>cdhit_filter</code></td><td>CD-HIT 95% clustering to remove redundant proteins</td><td>BRAKER <code>braker.aa</code></td></tr>
+      <tr><td><code>repeat_gene_filter</code></td><td>Remove gene models with &gt;30% repeat overlap</td><td>BRAKER GTF + RepeatMasker GFF</td></tr>
+      <tr><td><code>extract_filtered_genes</code></td><td>Extract nucleotide sequences for filtered gene models via gffread</td><td>Filtered GTF + masked genome</td></tr>
+      <tr><td><code>ref_sim_filter</code></td><td>BLASTn genes vs reference; retain only novel genes</td><td>Filtered gene FASTA + reference</td></tr>
+      <tr><td><code>build_pan_gene_set</code></td><td>Concatenate reference CDS + retained novel genes into pan-gene FASTA</td><td><code>ref_sim_filter</code> output + <code>cds_from_genomic.fna</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="phase-label">Phase 6 — PAV analysis</div>
+  <table>
+    <thead><tr><th>Step</th><th>What it runs</th><th>Prerequisites on disk</th></tr></thead>
+    <tbody>
+      <tr><td><code>pav_align</code></td><td>Build Bowtie2 index of pan-gene set; align each sample's reads</td><td>Pan-gene FASTA + samples</td></tr>
+      <tr><td><code>pav_call</code></td><td>samtools coverage per gene; call presence (>=80% breadth, >=3x depth)</td><td>PAV alignment BAMs</td></tr>
+      <tr><td><code>pav_classify</code></td><td>Merge sample tables into PA matrix; classify genes (core/shell/cloud/private)</td><td>Per-sample presence_absence.tsv files</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Recommended step-by-step execution</h3>
+  <pre><code># Phase 1
+nextflow run main.nf -profile local --step qc
+nextflow run main.nf -profile local --step index_bwa
+nextflow run main.nf -profile local --step align_bwa
+nextflow run main.nf -profile local --step alignstats
+nextflow run main.nf -profile local --step qualimap
+
+# Phase 2
+nextflow run main.nf -profile local --step extract
+nextflow run main.nf -profile local --step convert
+nextflow run main.nf -profile local --step pool
+nextflow run main.nf -profile local --step assemble
+
+# Phase 3 — BLAST path
+nextflow run main.nf -profile local --step blast_nt
+nextflow run main.nf -profile local --step blast_filter
+nextflow run main.nf -profile local --step blast_remove
+# Phase 3 — FCS-GX path (alternative or in addition)
+nextflow run main.nf -profile local --step fcs_screen
+nextflow run main.nf -profile local --step fcs_clean
+
+# Phase 4
+nextflow run main.nf -profile local --step repeatmasker
+nextflow run main.nf -profile local --step pangenome_merge
+# Optional: nextflow run main.nf -profile local --step edta
+
+# Phase 5
+nextflow run main.nf -profile local --step braker
+nextflow run main.nf -profile local --step cdhit_filter
+nextflow run main.nf -profile local --step repeat_gene_filter
+nextflow run main.nf -profile local --step extract_filtered_genes
+nextflow run main.nf -profile local --step ref_sim_filter
+nextflow run main.nf -profile local --step build_pan_gene_set
+
+# Phase 6
+nextflow run main.nf -profile local --step pav_align
+nextflow run main.nf -profile local --step pav_call
+nextflow run main.nf -profile local --step pav_classify</code></pre>
+</section>
+
+<!-- MODULES -->
+<section class="section" id="modules">
+  <h2>Modules</h2>
+  <p>All 30 modules respect <code>task.cpus</code> and <code>task.memory</code> from <code>conf/base.config</code> unless they override with fixed values (RepeatMasker: 4 CPUs / 8 GB).</p>
+
+  <div class="phase-label">Phase 1 — QC and alignment</div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-blue">QC</span><span class="mod-name">FASTQC</span><span class="mod-file">modules/fastqc.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Runs FastQC on each sample's read pair in parallel. HTML reports and zip archives are published per sample; zips are collected by MULTIQC.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>sample_id (val)</li><li>reads [R1, R2] (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>*.html (per sample)</li><li>*.zip (collected -> MULTIQC)</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-blue">QC</span><span class="mod-name">MULTIQC</span><span class="mod-file">modules/multiqc.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Aggregates all FastQC zip files into a single HTML report. In <code>complete</code> mode its <code>report</code> output acts as a gate that holds alignment back until QC completes.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>fastqc_zips (collected)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>multiqc_report.html</li><li>multiqc_report_data/</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-purple">Index</span><span class="mod-name">BWA_INDEX</span><span class="mod-file">modules/bwa_index.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Builds a BWA-MEM2 index from the reference FASTA and permanently saves it to <code>reference/bwa_index/</code>. Skipped automatically on subsequent runs if that folder exists.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-purple">Index</span><span class="mod-name">BOWTIE2_INDEX</span><span class="mod-file">modules/bowtie2_index.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Builds a Bowtie2 index and saves it to <code>reference/bowtie2_index/</code>. Used for the optional <code>align_bowtie</code> step; PAV_ALIGN builds its own temporary index against the pan-gene FASTA.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-green">Align</span><span class="mod-name">BWA_ALIGN_AND_SORT</span><span class="mod-file">modules/bwa_align.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Aligns paired reads with <code>bwa-mem2 mem</code> piped directly into <code>samtools sort</code> to avoid writing intermediate SAM files, then indexes the BAM. Read group tags are generated from the sample ID. A <code>qc_done</code> gate prevents alignment starting before MultiQC finishes in <code>complete</code> mode.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>sample_id + reads</li><li>reference (path)</li><li>bwa index files</li><li>qc_done (gate val)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>{sample}.sorted.bam + .bai</li><li>{sample}.alignment.log</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-amber">Stats</span><span class="mod-name">ALIGNMENT_STATS</span><span class="mod-file">modules/alignment_stats.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Runs four samtools commands per BAM. Acts as a passthrough — the BAM tuple is re-emitted unchanged via the <code>bam</code> channel so QUALIMAP and EXTRACT_UNMAPPED_READS can chain from it without redundant disk reads.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>sample_id + bam + bai</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>.flagstat.txt</li><li>.stats.txt</li><li>.coverage.txt</li><li>.idxstats.txt</li><li>bam (passthrough emit)</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-amber">Stats</span><span class="mod-name">QUALIMAP</span><span class="mod-file">modules/qualimap.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Runs <code>qualimap bamqc</code> with chromosome-limit painting and multi-thread support. Java heap size is derived from <code>task.memory.toGiga()</code> — ensure <code>mem_per_task</code> is set high enough in <code>base.config</code>.</p>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 2 — Assembly</div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-coral">Extract</span><span class="mod-name">EXTRACT_UNMAPPED_READS</span><span class="mod-file">modules/extract_unmapped.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Extracts three categories of unmapped reads using samtools flag filters, merges all three BAMs, then name-sorts the result. Name-sorting is mandatory before <code>samtools fastq</code> so paired reads are adjacent.</p>
+      <table style="margin-top:.4rem;">
+        <thead><tr><th>Scenario</th><th>Flags</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Both unmapped</td><td><code>-f 12 -F 256</code></td><td>Read and mate both failed to align</td></tr>
+          <tr><td>Read unmapped, mate mapped</td><td><code>-f 4 -F 264</code></td><td>This read unaligned; its mate is placed</td></tr>
+          <tr><td>Mate unmapped, read mapped</td><td><code>-f 8 -F 260</code></td><td>This read placed; mate is unaligned</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-coral">Extract</span><span class="mod-name">CONVERT_TO_FASTQ</span><span class="mod-file">modules/convert_fastq.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Converts name-sorted unmapped BAM to paired gzipped FASTQ via <code>samtools fastq</code>. Secondary and supplementary alignments excluded (<code>-F 0x900</code>). Read suffixes <code>/1</code> and <code>/2</code> added (<code>-N</code>) as required by MaSuRCA.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-gray">Pool</span><span class="mod-name">MERGE_FASTQ</span><span class="mod-file">modules/merge_fastq.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Concatenates all per-sample unmapped FASTQs into a single <code>pooled_R1.fastq.gz</code> / <code>pooled_R2.fastq.gz</code>. Pooling across samples is the key pangenome step — it lets the assembler build contigs from novel content shared or unique across the cohort.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-gray">Assemble</span><span class="mod-name">MASURCA_ASSEMBLY</span><span class="mod-file">modules/masurca_assembly.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Runs MaSuRCA with a dynamically generated config file. Key parameters (editable inline):</p>
+      <table style="margin-top:.4rem;">
+        <thead><tr><th>Parameter</th><th>Current value</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>PE insert mean / SD</td><td>400 / 140 bp</td><td>Library insert size — adjust to match your library</td></tr>
+          <tr><td>JF_SIZE</td><td>1,500,000,000</td><td>Jellyfish hash size — increase for large/repetitive genomes</td></tr>
+          <tr><td>CLOSE_GAPS</td><td>1</td><td>Attempt gap closure post-assembly</td></tr>
+          <tr><td>cgwErrorRate</td><td>0.15</td><td>Contig graph error tolerance</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:.5rem;">The module searches multiple possible output paths to accommodate different MaSuRCA versions. Assembly statistics (N50, total length, contig count) are computed with pure awk.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-gray">Assemble</span><span class="mod-name">COMBINE_CONTIGS</span><span class="mod-file">modules/masurca_assembly.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Only used in per-sample assembly mode. Concatenates all per-sample primary FASTAs into <code>combined_contigs.fasta</code>. Fixed at 1 CPU / 4 GB.</p>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 3 — Contamination removal</div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-coral">Contamination</span><span class="mod-name">BLAST_NT</span><span class="mod-file">modules/blast_nt.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">BLASTn assembled contigs against NCBI nt using <code>-remote</code> (no local database required). Outputs a header-annotated TSV consumed by FILTER_BLAST. Parameters: evalue 1e-5, max_target_seqs 5.</p>
+      <div class="note note-amber" style="margin-top:.5rem;">Remote BLAST can be slow for large assemblies. Consider installing a local nt database and removing <code>-remote</code> from the blastn command in the module script.</div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-coral">Contamination</span><span class="mod-name">FILTER_BLAST</span><span class="mod-file">modules/blast_filter.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Multi-step filtering pipeline. Tunable inline variables at the top of the script:</p>
+      <table style="margin-top:.4rem;">
+        <thead><tr><th>Variable</th><th>Default</th><th>What to change</th></tr></thead>
+        <tbody>
+          <tr><td><code>MIN_PIDENT</code></td><td>80</td><td>Minimum % identity to retain a hit</td></tr>
+          <tr><td><code>MIN_QCOVS</code></td><td>50</td><td>Minimum query coverage</td></tr>
+          <tr><td><code>MAX_EVALUE</code></td><td>1e-5</td><td>Maximum e-value</td></tr>
+          <tr><td><code>PLANT_TAXIDS</code></td><td>"33090,3827"</td><td>Allowed taxids (Viridiplantae + chickpea) — add yours if different</td></tr>
+          <tr><td><code>TAXDUMP_DIR</code></td><td>$HOME/ncbi_taxdump</td><td>Local NCBI taxdump path for taxonkit</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:.4rem;">Pipeline: quality filter -> best hit per contig -> plant vs non-plant split by staxid -> taxonkit lineage for non-plant taxids.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-coral">Contamination</span><span class="mod-name">REMOVE_CONTAMINANTS</span><span class="mod-file">modules/blast_remove.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Removes non-plant contigs identified by FILTER_BLAST. Produces <code>clean_assembly.fasta</code> (kept) and <code>removed_contigs.fasta</code> (discarded). Set <code>DROP_NO_HIT=1</code> inline to also remove contigs with no BLAST hit at all (default: kept).</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-coral">Contamination</span><span class="mod-name">FCS_SCREEN</span><span class="mod-file">modules/fcs_screen.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Runs NCBI FCS-GX (<code>fcs.py screen genome</code>) against a local GX database. <strong>You must edit <code>GXDB_DIR</code> and <code>TAXID</code> inside the module script before running this step.</strong></p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>assembly_fasta (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>fcs_screen.taxonomy.rpt</li><li>fcs_screen.fcs_gx_report.txt</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-coral">Contamination</span><span class="mod-name">FCS_CLEAN</span><span class="mod-file">modules/fcs_clean.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Applies the FCS-GX action report via <code>fcs.py clean genome</code>. Produces <code>fcs_clean.fasta</code> (clean contigs) and <code>fcs_contam.fasta</code> (removed contaminants).</p>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 4 — Repeat annotation</div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-teal">Repeats</span><span class="mod-name">EDTA_ANNOTATE</span><span class="mod-file">modules/edta_annotate.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Full EDTA TE annotation (<code>--step all --anno 1 --sensitive 1 --species others</code>). All outputs are collected under <code>results/EDTA/EDTA_{basename}/</code>. This step is optional — RepeatMasker GFF is used as the default repeat source for downstream gene filtering. To switch, uncomment the EDTA line in the <code>repeat_gene_filter</code> block of <code>main.nf</code>.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-teal">Repeats</span><span class="mod-name">REPEATMASKER</span><span class="mod-file">modules/repeatmasker.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Soft-masks repeats with <code>RepeatMasker -species chickpea -xsmall -gff</code>. Soft-masking (lowercase) is used rather than hard-masking (N) to preserve sequence for gene prediction. Fixed at 4 CPUs / 8 GB. Change <code>-species</code> inside the script if your organism is different. Outputs: <code>*.masked</code> (for BRAKER), <code>*.out.gff</code> (for REPEAT_GENE_FILTER).</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-teal">Repeats</span><span class="mod-name">PANGENOME_MERGE</span><span class="mod-file">modules/pangenome_merge.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Concatenates the reference genome FASTA with RepeatMasker-masked novel contigs to produce <code>pangenome.fasta</code>. Stats file reports reference contigs, novel contigs, total contigs, and total assembly length.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>masked_contigs (path)</li><li>reference_fasta (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>pangenome.fasta</li><li>merge_stats.txt</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 5 — Gene prediction and filtering</div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-green">Prediction</span><span class="mod-name">BRAKER</span><span class="mod-file">modules/braker.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Runs BRAKER3 (<code>braker.pl --prot_seq --softmasking</code>) on the RepeatMasker-masked assembly using the protein hints file from <code>protein_hints/</code>. All BRAKER outputs are published to <code>results/gene_prediction/</code>. Key outputs consumed downstream: <code>braker.gtf</code> (gene models) and <code>braker.aa</code> (predicted proteins).</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-amber">Gene filter</span><span class="mod-name">CDHIT_FILTER</span><span class="mod-file">modules/cdhit_filter.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Clusters BRAKER predicted proteins at 95% identity (<code>-c 0.95 -n 5 -M 0</code>) to remove redundant isoforms or duplicated predictions. Outputs non-redundant proteins and the cluster file.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>braker.aa (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>cdhit_nr_proteins.fa</li><li>cdhit_nr_proteins.fa.clstr</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-amber">Gene filter</span><span class="mod-name">REPEAT_GENE_FILTER</span><span class="mod-file">modules/repeat_gene_filter.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Uses bedtools intersect to find gene models where more than 30% of the gene body overlaps RepeatMasker annotations, then removes them from the GTF. The overlap threshold is set inline in the awk filtering step. By default uses RepeatMasker GFF; to use EDTA output instead, uncomment the EDTA line in <code>main.nf</code>.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>braker_gtf (path)</li><li>repeat_gff (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>filtered_braker.gtf</li><li>genes_repeat_overlap.tsv</li><li>genes_to_remove.txt</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-amber">Gene filter</span><span class="mod-name">EXTRACT_FILTERED_GENES</span><span class="mod-file">modules/extract_filtered_genes.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Extracts nucleotide sequences for filtered gene models using <code>gffread -w</code> against the masked genome. Produces <code>filtered_genes.fa</code> for reference similarity filtering in the next step.</p>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-amber">Gene filter</span><span class="mod-name">REF_SIM_FILTER</span><span class="mod-file">modules/ref_sim_filter.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">BLASTn filtered genes against the reference genome. Genes with >=80% identity AND >=80% query coverage are considered reference-like and removed using <code>seqkit grep -v</code>. Only genuinely novel genes are retained in <code>ref_similarity_retained.fa</code>.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>filtered_genes.fa (path)</li><li>reference_fasta (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>ref_similarity_retained.fa</li><li>ref_similarity_hits.tsv</li><li>ref_similarity_remove.txt</li><li>ref_similarity_stats.txt</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-amber">Gene filter</span><span class="mod-name">BUILD_PAN_GENE_SET</span><span class="mod-file">modules/build_pan_gene_set.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Concatenates <code>cds_from_genomic.fna</code> (reference gene set) with <code>ref_similarity_retained.fa</code> (novel genes) to produce the final <code>pan_genes.fa</code>. This catalogue is the input to the entire PAV analysis phase.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>cds_from_genomic.fna</li><li>ref_similarity_retained.fa</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>pan_genes.fa</li><li>pan_genes_stats.txt</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 6 — PAV analysis</div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-purple">PAV</span><span class="mod-name">PAV_ALIGN</span><span class="mod-file">modules/pav_align.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Builds a Bowtie2 index of <code>pan_genes.fa</code> then aligns each sample's raw reads against it using <code>--no-mixed --local</code>. Produces a sorted, indexed BAM per sample for coverage-based presence/absence calling.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>sample_id + R1 + R2</li><li>pan_genes.fa (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>{sample}.sorted.bam + .bai</li><li>{sample}.pav_align.log</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-purple">PAV</span><span class="mod-name">PAV_CALL</span><span class="mod-file">modules/pav_call.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Runs <code>samtools coverage</code> per gene per sample and applies presence/absence thresholds inline in an awk block. A gene is called <strong>present</strong> if at least 80% of its bases are covered at a mean depth of at least 3x. Adjust these thresholds in the awk script if needed.</p>
+      <div class="io">
+        <div class="io-box"><h4>Inputs</h4><ul><li>sample_id + bam</li><li>pan_genes.fa (path)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>{sample}.gene_coverage.tsv</li><li>{sample}.presence_absence.tsv</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod">
+    <div class="mod-hd"><span class="badge b-purple">PAV</span><span class="mod-name">PAV_CLASSIFY</span><span class="mod-file">modules/pav_classify.nf</span></div>
+    <div class="mod-body">
+      <p class="mod-desc">Python3 + pandas script that outer-joins all per-sample presence/absence tables into a gene x sample matrix and classifies each gene. Classification thresholds:</p>
+      <table style="margin-top:.4rem;">
+        <thead><tr><th>Class</th><th>Criteria</th></tr></thead>
+        <tbody>
+          <tr><td><strong>core</strong></td><td>Present in >=97% of samples</td></tr>
+          <tr><td><strong>soft_core</strong></td><td>Present in 90-97% of samples</td></tr>
+          <tr><td><strong>shell</strong></td><td>Present in 15-90% of samples</td></tr>
+          <tr><td><strong>cloud</strong></td><td>Present in &lt;15% of samples (but in more than 1)</td></tr>
+          <tr><td><strong>private</strong></td><td>Present in exactly 1 sample</td></tr>
+        </tbody>
+      </table>
+      <div class="io" style="margin-top:.6rem;">
+        <div class="io-box"><h4>Inputs</h4><ul><li>*.presence_absence.tsv (collected)</li></ul></div>
+        <div class="io-box"><h4>Outputs</h4><ul><li>pav_presence_absence_matrix.tsv</li><li>pav_gene_classes.tsv</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIGURATION -->
+<section class="section" id="config">
+  <h2>Configuration</h2>
+
+  <h3>Main parameters — <code>nextflow.config</code></h3>
+  <table>
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>params.reference</code></td><td class="mono">./reference</td><td>Directory containing the genome FASTA and <code>cds_from_genomic.fna</code>. Point to the folder, not the file — the FASTA is auto-detected.</td></tr>
+      <tr><td><code>params.samples_dir</code></td><td class="mono">./samples</td><td>Directory with one subdirectory per accession, each holding paired FASTQ files.</td></tr>
+      <tr><td><code>params.outdir</code></td><td class="mono">./results</td><td>Root directory for all output files.</td></tr>
+      <tr><td><code>params.step</code></td><td class="mono">complete</td><td>Which pipeline step to run. See the Steps section for all valid values.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Resource settings — <code>conf/base.config</code></h3>
+  <pre><code>def cpus_per_task = 4       // CPUs assigned to each process
+def mem_per_task  = '24 GB' // Memory per process
+def max_parallel  = 1       // Samples running simultaneously</code></pre>
+  <div class="note note-amber"><strong>Note:</strong> <code>cpus_per_task x max_parallel</code> must not exceed your machine's total CPU cores. RepeatMasker overrides these with its own fixed values (4 CPUs / 8 GB) declared inside the module.</div>
+
+  <h3>Machine limits — <code>conf/local.config</code></h3>
+  <pre><code>executor {
+    name   = 'local'
+    cpus   = 4        // total CPU cores on your machine
+    memory = '28 GB'  // total RAM on your machine
+}</code></pre>
+
+  <h3>Conda environment path</h3>
+  <p>Update the conda env path in <code>nextflow.config</code> under the <code>local</code> profile to match your system:</p>
+  <pre><code>profiles {
+    local {
+        process.conda = '/home/bionivid/miniconda3/envs/biointern'
+        // change this to your conda environment path
+    }
+}</code></pre>
+
+  <h3>Per-module tunable parameters</h3>
+  <p>These variables are set inline inside module script blocks — edit the module file directly:</p>
+  <table>
+    <thead><tr><th>Module file</th><th>Variable(s)</th><th>Default</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>blast_filter.nf</td><td>MIN_PIDENT, MIN_QCOVS, MAX_EVALUE</td><td>80, 50, 1e-5</td><td>BLAST hit quality thresholds</td></tr>
+      <tr><td>blast_filter.nf</td><td>PLANT_TAXIDS</td><td>"33090,3827"</td><td>Allowed taxids — add your organism if not chickpea</td></tr>
+      <tr><td>blast_filter.nf</td><td>TAXDUMP_DIR</td><td>$HOME/ncbi_taxdump</td><td>Path to local NCBI taxdump for taxonkit</td></tr>
+      <tr><td>blast_remove.nf</td><td>DROP_NO_HIT</td><td>0</td><td>Set to 1 to remove contigs with no BLAST hit</td></tr>
+      <tr><td>fcs_screen.nf</td><td>GXDB_DIR, TAXID</td><td>/path/to/gxdb, 3827</td><td>Must be updated before running any FCS step</td></tr>
+      <tr><td>repeatmasker.nf</td><td>-species</td><td>chickpea</td><td>RepeatMasker species library to use</td></tr>
+      <tr><td>masurca_assembly.nf</td><td>PE insert mean/SD, JF_SIZE</td><td>400/140, 1.5G</td><td>Library insert size and Jellyfish hash size</td></tr>
+      <tr><td>repeat_gene_filter.nf</td><td>overlap threshold</td><td>0.30</td><td>Fraction of gene body overlapping repeat to trigger removal</td></tr>
+      <tr><td>pav_call.nf</td><td>breadth, depth thresholds</td><td>80%, 3x</td><td>Presence/absence calling stringency</td></tr>
+      <tr><td>cdhit_filter.nf</td><td>-c</td><td>0.95</td><td>CD-HIT clustering identity threshold</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- OUTPUTS -->
+<section class="section" id="outputs">
+  <h2>Outputs</h2>
+  <p>All outputs are written under <code>params.outdir</code> (default <code>./results/</code>). Logs for every module are collected under <code>results/logs/</code>.</p>
+  <table>
+    <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td><code>results/qc/fastqc/</code></td><td>Per-sample FastQC HTML reports and zip archives</td></tr>
+      <tr><td><code>results/qc/multiqc/</code></td><td>Aggregated MultiQC HTML report</td></tr>
+      <tr><td><code>results/aligned/</code></td><td>Sorted BAMs and indexes per sample</td></tr>
+      <tr><td><code>results/aligned/flagstat/</code></td><td>samtools flagstat, stats, coverage, idxstats per sample</td></tr>
+      <tr><td><code>results/qualimap/</code></td><td>Qualimap HTML report per sample</td></tr>
+      <tr><td><code>results/extracted/</code></td><td>Name-sorted unmapped BAMs per sample</td></tr>
+      <tr><td><code>results/fastq_unmapped/</code></td><td>Unmapped FASTQ pairs per sample</td></tr>
+      <tr><td><code>results/fastq_pooled/</code></td><td>All-sample pooled unmapped R1/R2</td></tr>
+      <tr><td><code>results/assembly/pooled/</code></td><td>MaSuRCA primary assembly FASTA + stats (pooled mode)</td></tr>
+      <tr><td><code>results/assembly/combined/</code></td><td>Combined contigs from per-sample assemblies (if applicable)</td></tr>
+      <tr><td><code>results/contamination_filterng/blast/</code></td><td>BLAST raw TSV, filtered TSVs, plant/non-plant split files</td></tr>
+      <tr><td><code>results/contamination_filterng/remove/</code></td><td>clean_assembly.fasta, removed_contigs.fasta</td></tr>
+      <tr><td><code>results/contamination_filterng/fcs/</code></td><td>FCS-GX reports, fcs_clean.fasta, fcs_contam.fasta</td></tr>
+      <tr><td><code>results/EDTA/</code></td><td>Full EDTA TE annotation outputs per assembly</td></tr>
+      <tr><td><code>results/repeatmasker/</code></td><td>*.masked genome, *.out.gff, *.tbl, *.out</td></tr>
+      <tr><td><code>results/pangenome/</code></td><td>pangenome.fasta (reference + masked novel contigs merged)</td></tr>
+      <tr><td><code>results/gene_prediction/braker/</code></td><td>braker.gtf, braker.aa, all BRAKER3 outputs</td></tr>
+      <tr><td><code>results/gene_filtering/cdhit/</code></td><td>cdhit_nr_proteins.fa, cluster file</td></tr>
+      <tr><td><code>results/gene_filtering/repeat_filter/</code></td><td>filtered_braker.gtf, overlap table, remove list</td></tr>
+      <tr><td><code>results/gene_filtering/extracted_genes/</code></td><td>filtered_genes.fa (nucleotide sequences)</td></tr>
+      <tr><td><code>results/gene_filtering/ref_similarity/</code></td><td>ref_similarity_retained.fa, BLAST hits, remove list</td></tr>
+      <tr><td><code>results/pav/pan_genes.fa</code></td><td>Final pan-gene catalogue (reference CDS + novel genes)</td></tr>
+      <tr><td><code>results/pav/alignment/</code></td><td>Per-sample BAMs aligned to pan-gene set</td></tr>
+      <tr><td><code>results/pav/calls/</code></td><td>Per-sample gene_coverage.tsv + presence_absence.tsv</td></tr>
+      <tr><td><code>results/pav/classification/</code></td><td>pav_presence_absence_matrix.tsv, pav_gene_classes.tsv</td></tr>
+      <tr><td><code>results/logs/</code></td><td>Per-module log files organised by step name</td></tr>
+      <tr><td><code>results/reports/</code></td><td>Timestamped Nextflow trace, timeline, and HTML execution reports</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- TROUBLESHOOTING -->
+<section class="section" id="troubleshooting">
+  <h2>Troubleshooting</h2>
+
+  <h3>Startup errors</h3>
+  <table>
+    <thead><tr><th>Error message</th><th>Cause and fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>No reference genome FASTA found in: ./reference</code></td><td>No <code>.fasta</code> or <code>.fa</code> file in <code>reference/</code>. Note: <code>.fna</code> is not accepted for the genome FASTA.</td></tr>
+      <tr><td><code>Multiple genome FASTAs found</code></td><td>More than one <code>.fasta/.fa</code> file present. Keep exactly one.</td></tr>
+      <tr><td><code>No reference gene FASTA found</code></td><td><code>cds_from_genomic.fna</code> is missing from <code>reference/</code>. The filename must match exactly.</td></tr>
+      <tr><td><code>No sample directories found</code></td><td><code>samples/</code> is empty or the path in <code>nextflow.config</code> is wrong.</td></tr>
+      <tr><td><code>Invalid step</code></td><td>Step name misspelled or wrong case. All step names are lowercase; check the Steps table.</td></tr>
+      <tr><td><code>No protein hint FASTA found</code></td><td><code>protein_hints/</code> directory is missing or contains no recognised extension. Create it with one protein FASTA.</td></tr>
+      <tr><td><code>No cleaned assembly found</code></td><td>Running <code>repeatmasker</code>, <code>edta</code>, or <code>braker</code> without a cleaned assembly. Run <code>blast_remove</code> or <code>fcs_clean</code> first.</td></tr>
+      <tr><td><code>No RepeatMasker masked genome found</code></td><td>Running <code>braker</code> or <code>pangenome_merge</code> without RepeatMasker output. Run <code>repeatmasker</code> first.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>No reads discovered</h3>
+  <p>The pipeline accepts <code>*_{R1,R2}.fastq.gz</code> and <code>*_{1,2}.fastq.gz</code>. To support additional naming conventions, add patterns to the glob list in <code>main.nf</code>:</p>
+  <pre><code>reads_ch = Channel.fromFilePairs([
+    "${params.samples_dir}/**/*_{R1,R2}.fastq.gz",
+    "${params.samples_dir}/**/*_{1,2}.fastq.gz",
+    "${params.samples_dir}/**/*_R1_001.fastq.gz"  // add your pattern here
+])</code></pre>
+
+  <h3>MaSuRCA fails or produces no output</h3>
+  <p>Check <code>results/logs/assembly/{id}_masurca.log</code>.</p>
+  <table>
+    <thead><tr><th>Symptom</th><th>Likely cause</th></tr></thead>
+    <tbody>
+      <tr><td><code>assemble.sh not generated</code></td><td>MaSuRCA config is malformed or insert size (400 +/-140) does not match your library. Edit <code>PE=</code> in <code>masurca_assembly.nf</code>.</td></tr>
+      <tr><td>No primary FASTA located</td><td>MaSuRCA version outputs to an unexpected path. The module tries several known paths; add the actual path to the search list if yours differs.</td></tr>
+      <tr><td>Very few contigs</td><td>Too few unmapped reads. Check <code>pool_stats.txt</code> — low counts mean most reads mapped to the reference, leaving little to assemble.</td></tr>
+      <tr><td>Out of memory</td><td>Increase <code>mem_per_task</code> in <code>base.config</code> and increase <code>JF_SIZE</code> for large or repetitive genomes.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>BLAST_NT is very slow</h3>
+  <p>Remote BLAST (<code>-remote</code>) can take many hours for large assemblies. Consider: (1) running during off-peak hours, (2) installing a local nt database and removing <code>-remote</code> from the blastn command in <code>blast_nt.nf</code>, or (3) splitting the assembly and running chunks in parallel.</p>
+
+  <h3>FCS-GX errors</h3>
+  <p>The most common cause is an incorrect or inaccessible <code>GXDB_DIR</code>. Verify the path contains <code>all.gxi</code>, <code>all.gxs</code>, and all other GX database files. Also confirm <code>TAXID</code> is set to your organism's NCBI taxid.</p>
+
+  <h3>BRAKER fails or produces no gene models</h3>
+  <p>Check <code>results/logs/gene_prediction/braker.log</code>. Common causes: AUGUSTUS config directory not set in environment, GeneMark-ETP licence expired, or the masked genome has too many Ns / too little unmasked sequence for training. Ensure all BRAKER3 dependencies (AUGUSTUS, GeneMark-ETP, DIAMOND, SPALN) are correctly installed and configured.</p>
+
+  <h3>PAV matrix is all zeros or missing samples</h3>
+  <p>Verify that <code>pav_call</code> produced <code>.presence_absence.tsv</code> files for all samples in <code>results/pav/calls/</code>. If files are missing, rerun <code>pav_align</code> and <code>pav_call</code>. Very low-coverage samples may have all genes called absent — check read counts in <code>pav_align</code> logs.</p>
+
+  <h3>Pipeline resumes incorrectly</h3>
+  <pre><code># Force a clean re-run by removing the Nextflow cache
+rm -rf work/
+
+# Or omit -resume for this run only
+nextflow run main.nf -profile local --step complete</code></pre>
+  <div class="note note-red"><strong>Warning:</strong> Deleting <code>work/</code> means every step reruns from scratch. This can take many hours for compute-heavy steps like BLAST, EDTA, and BRAKER.</div>
+
+  <h3>Reading execution reports</h3>
+  <p>Every run writes three timestamped files to <code>results/reports/</code>: an HTML execution report, a timeline, and a trace. The trace lists per-task CPU time, wall time, and peak memory — the best starting point when diagnosing a slow or failed step.</p>
+</section>
+
+</main>
+</div>
+
+<script>
+  const sections = document.querySelectorAll('section.section');
+  const navLinks = document.querySelectorAll('.topnav a, .sidebar a');
+  function setActive(id) {
+    navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  }
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
